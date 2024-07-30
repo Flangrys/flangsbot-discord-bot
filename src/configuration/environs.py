@@ -1,7 +1,7 @@
 import os
 
 
-def get_environs(key: str) -> str:
+def get_environ(key: str) -> str:
     """Get a environ by giving a key
 
     Args:
@@ -21,12 +21,12 @@ def get_environs(key: str) -> str:
     env = os.environ.get(key)
 
     if env == None:
-        raise RuntimeError(f"there is no a environ variable with the key {key}")
+        raise RuntimeError(f"there is no an environ variable with the key {key}")
 
     return env
 
 
-def get_bool_environs(key: str) -> bool:
+def get_bool_environ(key: str) -> bool:
     """Get a boolean environment variable by giving a key
 
     Args:
@@ -46,6 +46,6 @@ def get_bool_environs(key: str) -> bool:
     env = os.environ.get(key)
 
     if env == None:
-        raise RuntimeError(f"there is no a environ variable with the ke {key}")
+        raise RuntimeError(f"there is no an environ variable with the key {key}")
 
     return bool(env)

@@ -1,0 +1,9 @@
+    accion=entrar
+    &gencook=
+    &FrmCod=aWF2L0dCOG9oNXpTYUp5Wm1tT0lodz09Ojo7OjphY2U2N2I0NzEzNDZiZmJm
+    &f_srv=2024
+    &loginUsuario%5Bcodigo%5D=aWF2L0dCOG9oNXpTYUp5Wm1tT0lodz09Ojo7OjphY2U2N2I0NzEzNDZiZmJm
+    &loginUsuario%5Btipodoc%5D=3
+    &loginUsuario%5Bnrodoc%5D=46036180
+    &loginUsuario%5Bpasswd%5D=6t6Ms%25x49D%2FTbFS
+    &ingresar=

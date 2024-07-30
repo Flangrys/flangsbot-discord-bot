@@ -1,36 +1,67 @@
+import asyncio
 import logging
-from typing import Any, Coroutine
 
-from discord.client import Client
-from discord.ext.commands.bot import BotBase
+import discord
+from discord.ext import commands
 
-from commands import help_command
-from configuration import environs
-from src.managers.extensions import ExtensionsManager
+from src.commands import help_command
+from src.configuration import environs, loggers
+from src.managers import extensions, sisinfo
+from src.types import version
 
 
-class Flangsbot(BotBase, Client):
+class Flangsbot(commands.Bot):
 
-    CLIENT_SECRET_KEY: str
-    CLIENT_DEBUG_MODE: bool
+    __version__: version.ClientVersion
+
+    __CLIENT_SECRET_KEY: str
+    __CLIENT_DEBUG_MODE: bool
 
     __logger: logging.Logger
-    extensions_manager: ExtensionsManager
 
-    def __init__(self, **options):
-        self.__logger = logging.Logger(__name__, logging.INFO)
+    __extensions_manager: extensions.ExtensionsManager
+    __sisinfo_manager: sisinfo.SisinfoManager
 
-        self.extensions_manager = ExtensionsManager(self)
+    def __init__(self, *, version: version.ClientVersion) -> None:
+        super().__init__(
+            command_prefix="$fl",
+            help_command=help_command.HelpCommand(),
+            intents=discord.Intents.all(),
+        )
 
-        self.CLIENT_SECRET_KEY = environs.get_environs("FLANGSBOT_SECRET_KEY")
-        self.CLIENT_DEBUG_MODE = environs.get_bool_environs("FLANGSBOT_DEBUG_MODE")
+        self.__version__ = version
 
-        self.command_prefix = "fl$"
-        self.help_command = help_command.HelpCommand()
+        self.__logger = loggers.logger("discord")
 
-    def start(self, *args, **kwargs):
-        raise NotImplementedError("this method is currently unavailable")
+        # Setting up environ variables.
+        self.__CLIENT_SECRET_KEY = environs.get_environ("FLANGSBOT_SECRET_KEY")
+        self.__CLIENT_DEBUG_MODE = environs.get_bool_environ("FLANGSBOT_DEBUG_MODE")
 
-    async def setup_hook(self) -> Coroutine[Any, Any, None]:
-        await self.extensions_manager.load_all_extensions()
-        return super().setup_hook()
+        self.__extensions_manager = extensions.ExtensionsManager(self)
+        self.__sisinfo_manager = sisinfo.SisinfoManager(self)
+
+    def get_loop(self) -> asyncio.AbstractEventLoop:
+        return self.loop
+
+    async def setup_hook(self) -> None:
+        self.__logger.info("[setup] Setting up some things...")
+
+        await self.__extensions_manager.load_all_extensions()
+        await self.__sisinfo_manager.setup()
+
+        extensions = self.__extensions_manager.get_enabled_extensions()
+
+        if len(extensions) == 0:
+            self.__logger.warn("[extensions_manager] no cogs were loaded.")
+
+    async def launcher(self) -> None:
+        self.__logger.info("[launcher] Launching...")
+
+        async with self as bot:
+            await bot.login(token=bot.__CLIENT_SECRET_KEY)
+            await bot.connect(reconnect=True)
+
+    async def on_ready(self) -> None:
+        await self.tree.sync(guild=discord.Object(946064284209778801))
+
+        self.__logger.info("[application_commands] Synced commands")

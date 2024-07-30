@@ -1,15 +1,15 @@
 import logging
-import os
 import re
 
 import requests
 
+from src.services import abc
 
-class SYSINFOService:
+
+class SYSINFOService(abc.AbstractService):
     """
     This class represents a web scrapping service that collects information
-    from the site: "sisinfo.unrc.edu.ar". It must be instantiated for any
-    service that collects data from this site.
+    from the site: "sisinfo.unrc.edu.ar".
     """
 
     __logger: logging.Logger
@@ -17,24 +17,23 @@ class SYSINFOService:
 
     __sisinfo_user_dni: str
     __sisinfo_user_passwd: str
+
     __sisinfo_request_url: str = "https://sisinfo.unrc.edu.ar/"
     __sisinfo_request_params: list[str] = [
         "accion=entrar",
         "gencook=",
-        "ingresar=",
         "FrmCod=",
         "f_srv=2024",
         "loginUsuario[codigo]=",
         "loginUsuario[tipodoc]=3",
         "loginUsuario[nrodoc]=",
         "loginUsuario[passwd]=",
+        "ingresar=",
     ]
     __sisinfo_request_headers: list[str] = [
         "Referer https://sisinfo.unrc.edu.ar/sisinfo/",
     ]
-    __sisinfo_request_cookies: list[str] = [
-        "sisinfoses1=",
-    ]
+    __sisinfo_request_cookies: list[str] = ["sisinfoses1=", "SisInfo="]
 
     __is_client_logged: bool
     """Represents a binary state for the user logging state."""
@@ -48,30 +47,13 @@ class SYSINFOService:
         Raises:
             RuntimeError: When an environ variable were missing.
         """
-        self.__logger = logging.getLogger("src.client.Flangsbot")
+        self.__logger = logging.getLogger("discord")
 
         self.__is_client_logged = False
         self.__is_client_loaded = False
 
-        if (
-            __dni_nro := os.getenv("FLANGSBOT_SISINFO_USER_DNI")
-        ) == None or __dni_nro == "":
-            raise ValueError(
-                "the environ variable 'FLANGSBOT_SISINFO_USER_DNI' cannot be empty or None"
-            )
-
-        self.__sisinfo_user_dni = __dni_nro
-
-        if (
-            __passwd := os.getenv("FLANGSBOT_SISINFO_PASSWORD")
-        ) == None or __passwd == "":
-            raise ValueError(
-                "the environ variable 'FLANGSBOT_SISINFO_PASSWORD' cannot be empty or None"
-            )
-
-        self.__sisinfo_user_passwd = __passwd
-
-    def get_response(self) -> requests.Response:
+    @property
+    def response(self) -> requests.Response:
         return self.__response
 
     def __format_params(self):
@@ -100,11 +82,13 @@ class SYSINFOService:
         params["loginUsuario[nrodoc]"] = self.__sisinfo_user_dni
         params["loginUsuario[passwd]"] = self.__sisinfo_user_passwd
 
-        cookies["sisinfoses1"] = self.__extract_session_code()
+        # cookies["sisinfoses1"]=
+        # cookies["SisInfo"]=
 
         return params, headers, cookies
 
-    def __extract_session_token(self) -> str:
+    @property
+    def session_token(self) -> str:
         return self.__response.headers["sisinfoses1"]
 
     def __extract_session_code(self) -> str:
@@ -123,21 +107,22 @@ class SYSINFOService:
 
         self.__logger.debug("[extract_session_code] Extracting session token.")
 
-        hidden_form_session_code = self.parse_content(match_form_session_code_input)
+        session_codes_matched = self.parse_content(match_form_session_code_input)
 
-        if len(hidden_form_session_code) < 1:
+        if len(session_codes_matched) < 1:
             raise ValueError(
                 "the hidden formulary input for the session code is missing."
             )
 
-        self.__logger.debug("Extracting session code.")
+        self.__logger.debug("[session_code] Extracting session code.")
 
-        hidden_session_code = hidden_form_session_code[0].split(" ", 2)
+        session_code = session_codes_matched[0].split(" ", 2)
 
-        session_code = hidden_session_code[2].split("=", 2)[1]
+        session_code = session_code[2].split("=", 2)[1]
 
         self.__logger.info(
-            "Sucssesfully extracted the session code: {session_code}", session_code
+            "[extract_session_code] Sucssesfully extracted the session code: %s",
+            session_code,
         )
 
         return session_code.replace('"', "")
@@ -165,9 +150,7 @@ class SYSINFOService:
         """
         url = self.__sisinfo_request_url
 
-        self.__logger.debug(
-            "[request_index] Requesting an initial resource at {url}", url
-        )
+        self.__logger.debug("[request_index] Requesting an initial resource at %s", url)
 
         initial_response = requests.request("GET", url=url)
 
@@ -179,7 +162,7 @@ class SYSINFOService:
         self.__response = initial_response
         self.__is_client_loaded = True
         self.__logger.info(
-            "[request_index] The initial resource request at {url} was successfuly requested",
+            "[request_index] The initial resource request at %s was successfuly requested",
             url,
         )
 
@@ -195,7 +178,7 @@ class SYSINFOService:
         loging_params, loging_headers, loging_cookies = self.__build_request_body()
 
         self.__logger.debug(
-            "[request_loging] Requesting a loging at {url} as {dni}",
+            "[request_loging] Requesting a loging at %s as %s",
             url,
             self.__sisinfo_user_dni,
         )
@@ -214,22 +197,30 @@ class SYSINFOService:
                 f"The server {url} respond with a {loging_response.status_code} code wich is not an expected response code."
             )
 
+        if (
+            not loging_response.status_code == 302
+            or loging_response.headers.get("location") == None
+        ):
+            raise ConnectionError(
+                f"the server {url} denied the access to this resource."
+            )
+
         self.__response = loging_response
         self.__is_client_logged = True
         self.__logger.info(
-            "[request_loging] The loging request at {url} was successfully requested",
+            "[request_loging] The loging request at %s was successfully requested",
             url,
         )
 
-    def login(self) -> None:
-        """This method will request a logging to the site using the data previously requested.
+    async def setup(self) -> None:
+        """This method will setup a connection with the remote server.
 
         Raises:
             ConnectionError: When the external server does not respond as expected.
         """
 
-        # []: Check if a current session still exist.
-        # []: Check if the session has expired.
+        # TODO []: Check if a current session still exist.
+        # TODO []: Check if the session has expired.
 
         # HERE: Request initial resources.
         self.request_index()
@@ -237,18 +228,14 @@ class SYSINFOService:
         # HERE: Request logging action.
         self.request_loging()
 
-    async def logging_task(self, minutes: int) -> None:
-        """This method schedules a login renew process each a specific amount of time.
-
-        Args:
-            minutes (int): The time in minutes between each renew period.
-        """
-
     def request_resource(self, url: str) -> None:
+
+        if not (self.__is_client_loaded and self.__is_client_logged):
+            raise SystemError("cannot request a resource until login into the site.")
 
         request_params, request_headers, request_cookies = self.__build_request_body()
 
-        self.__logger.debug("[request_resource] Requesting a resource at {url}", url)
+        self.__logger.debug("[request_resource] Requesting a resource at %s", url)
 
         response = requests.request(
             "GET",

@@ -22,7 +22,7 @@ class TestSYSYINFOService(unittest.TestCase):
         service = sisinfo.SYSINFOService()
 
         try:
-            service.login()
+            service.setup()
 
         except Exception:
             self.fail("The logging method must not fail.")
