@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 import discord
@@ -24,7 +23,7 @@ class Flangsbot(commands.Bot):
 
     def __init__(self, *, version: version.ClientVersion) -> None:
         super().__init__(
-            command_prefix="$fl",
+            command_prefix="flan!",
             help_command=help_command.HelpCommand(),
             intents=discord.Intents.all(),
         )
@@ -32,6 +31,7 @@ class Flangsbot(commands.Bot):
         self.__version__ = version
 
         self.__logger = loggers.logger("discord")
+        self.__logger.setLevel(logging.DEBUG)
 
         # Setting up environ variables.
         self.__CLIENT_SECRET_KEY = environs.get_environ("FLANGSBOT_SECRET_KEY")
@@ -39,9 +39,6 @@ class Flangsbot(commands.Bot):
 
         self.__extensions_manager = extensions.ExtensionsManager(self)
         self.__sisinfo_manager = sisinfo.SisinfoManager(self)
-
-    def get_loop(self) -> asyncio.AbstractEventLoop:
-        return self.loop
 
     async def setup_hook(self) -> None:
         self.__logger.info("[setup] Setting up some things...")

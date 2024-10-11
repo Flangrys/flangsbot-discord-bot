@@ -3,11 +3,10 @@ from typing import override
 
 from discord.ext import commands
 
-from src.managers import abc
-from src.types import extension
+from src.types import extension, manager_interface
 
 
-class ExtensionsManager(abc.AbstractManager):
+class ExtensionsManager(manager_interface.ManagerInterface):
 
     EXTENSIONS_HASH: dict[str, int]
     EXTENSIONS_LIST: list[extension.Extension]
@@ -23,16 +22,12 @@ class ExtensionsManager(abc.AbstractManager):
         ]
 
         for index in range(len(self.EXTENSIONS_PATH)):
-            __extension_name = self.EXTENSIONS_PATH[index].stem
-            __extension_package = self.EXTENSIONS_PATH[index].name
-            __extension_enabled = False
-
-            self.EXTENSIONS_HASH.update({__extension_name: index})
+            self.EXTENSIONS_HASH.update({self.EXTENSIONS_PATH[index].stem: index})
             self.EXTENSIONS_LIST.append(
                 {
-                    "name": __extension_name,
-                    "package": __extension_package,
-                    "enabled": __extension_enabled,
+                    "name": self.EXTENSIONS_PATH[index].stem,
+                    "package": self.EXTENSIONS_PATH[index].name,
+                    "enabled": False,
                 }
             )
 

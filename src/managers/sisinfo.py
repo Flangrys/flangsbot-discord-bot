@@ -1,11 +1,10 @@
 import datetime
-import re
 import typing
 
 from discord.ext import commands
 
-from src.managers import abc
 from src.services import sisinfo
+from src.types import manager_interface
 
 
 class Notification(typing.TypedDict):
@@ -21,12 +20,14 @@ class Agenda(typing.TypedDict):
     description: str
 
 
-class SisinfoManager(abc.AbstractManager):
+class SisinfoManager(manager_interface.ManagerInterface):
 
     __service: sisinfo.SYSINFOService
 
     def __init__(self, bot: commands.Bot) -> None:
         super().__init__(bot, service=sisinfo.SYSINFOService())
+
+    async def setup(self) -> None: ...
 
     def request_notifications(self) -> list[Notification]: ...
 
