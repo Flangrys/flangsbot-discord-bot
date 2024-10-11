@@ -4,12 +4,12 @@ import logging
 class CustomFormatter(logging.Formatter):
 
     __formats: dict[int, str] = {
-        logging.NOTSET: "\N{ESC}[30;40m[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s[0m",
-        logging.DEBUG: "\N{ESC}[32;40m[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s[0m",
-        logging.INFO: "\N{ESC}[34;40m[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s[0m",
-        logging.WARN: "\N{ESC}[33;40m[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s[0m",
-        logging.ERROR: "\N{ESC}[31;40m[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s[0m",
-        logging.CRITICAL: "\N{ESC}[1m[31;40m[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s[0m",
+        logging.NOTSET: "\n\x1b[30;40m [%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s \x1b[0m",
+        logging.DEBUG: "\n\x1b[32;40m [%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s \x1b[0m",
+        logging.INFO: "\n\x1b[34;40m [%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s \x1b[0m",
+        logging.WARN: "\n\x1b[33;40m [%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s \x1b[0m",
+        logging.ERROR: "\n\x1b[31;40m [%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s \x1b[0m",
+        logging.CRITICAL: "\n\x1b[31;1m [%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s \x1b[0m",
     }
 
     def format(self, record: logging.LogRecord) -> str:
