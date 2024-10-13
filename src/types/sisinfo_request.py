@@ -1,8 +1,8 @@
 import typing
 
 
-class SYSINFORequest(typing.TypedDict):
+class SisinfoRequest(typing.TypedDict):
     url: str
-    params: list[str]
-    headers: list[str]
-    cookies: list[str]
+    payload: dict[str, str]
+    headers: dict[str, str]
+    cookies: dict[str, str]

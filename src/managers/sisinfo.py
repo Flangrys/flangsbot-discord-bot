@@ -25,9 +25,11 @@ class SisinfoManager(manager_interface.ManagerInterface):
     __service: sisinfo.SYSINFOService
 
     def __init__(self, bot: commands.Bot) -> None:
-        super().__init__(bot, service=sisinfo.SYSINFOService())
+        super().__init__(bot)
+        self.__service = sisinfo.SYSINFOService()
 
-    async def setup(self) -> None: ...
+    async def setup(self) -> None:
+        await self.__service.setup()
 
     def request_notifications(self) -> list[Notification]: ...
 

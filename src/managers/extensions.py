@@ -13,7 +13,7 @@ class ExtensionsManager(manager_interface.ManagerInterface):
     EXTENSIONS_PATH: list[pathlib.Path]
 
     def __init__(self, bot: commands.Bot) -> None:
-        super().__init__(bot, service=None)
+        super().__init__(bot)
 
         self.EXTENSIONS_HASH = {}
         self.EXTENSIONS_LIST = []

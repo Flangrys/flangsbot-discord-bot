@@ -31,7 +31,6 @@ class Flangsbot(commands.Bot):
         self.__version__ = version
 
         self.__logger = loggers.logger("discord")
-        self.__logger.setLevel(logging.DEBUG)
 
         # Setting up environ variables.
         self.__CLIENT_SECRET_KEY = environs.get_environ("FLANGSBOT_SECRET_KEY")

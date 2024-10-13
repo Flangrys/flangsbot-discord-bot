@@ -1,28 +1,21 @@
-import os
 import unittest
 
 from src.services import sisinfo
 
 
-class TestSYSYINFOService(unittest.TestCase):
+class TestSYSYINFOService(unittest.IsolatedAsyncioTestCase):
 
-    def test_service_constructor_without_environs_vars_expecting_any_error(self):
-
-        with self.assertRaises(
-            (ValueError, SystemError),
-            msg="the sysinfo service constructor must fail.",
-        ):
-
-            if bool(os.getenv("FLANGSBOT_DEBUG_MODE", 0)):
-                raise SystemError("test anything in debug mode always will fail.")
-
-            sisinfo.SYSINFOService()
-
-    def test_service_loging_expecting_no_errors(self):
-        service = sisinfo.SYSINFOService()
+    async def test_service_loging_expecting_no_errors(self):
+        sisinfo_service = sisinfo.SYSINFOService()
 
         try:
-            service.setup()
+            await sisinfo_service.setup()
+            await sisinfo_service.login()
+
+            if sisinfo_service.is_session_closed():
+                self.fail("The loging method fails to open a new session.")
+
+            await sisinfo_service.logout()
 
         except Exception:
-            self.fail("The logging method must not fail.")
+            self.fail("The loging method should not fail.")

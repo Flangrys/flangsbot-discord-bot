@@ -3,254 +3,190 @@ import re
 
 import requests
 
-from src.services import abc
+from src.configuration import environs, loggers
+from src.types import service_interface
+from src.types.sisinfo_request import SisinfoRequest
 
 
-class SYSINFOService(abc.AbstractService):
+class SYSINFOService(service_interface.ServiceInterface):
     """
-    This class represents a web scrapping service that collects information
-    from the site: "sisinfo.unrc.edu.ar".
+    This service provide a set of methods to access
     """
+
+    __SISINFO_URL = "https://sisinfo.unrc.edu.ar/sisinfo/"
 
     __logger: logging.Logger
-    __response: requests.Response
+    __session: requests.Session
 
-    __sisinfo_user_dni: str
-    __sisinfo_user_passwd: str
+    __meta: SisinfoRequest = {
+        "url": "https://sisinfo.unrc.edu.ar/index.php",
+        "headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/png,image/svg+xml,*/*;q=0.8",
+            "Accept-Language": "es-AR,es;q=0.8,en-US;q=0.5,en;q=0.3",
+            "Accept-Encoding": "gzip, deflate, br, zstd",
+            "Origin": "https://sisinfo.unrc.edu.ar",
+            "Connection": "keep-alive",
+            "Referer": "https://unrc.edu.ar/",
+            "User-Agent": "Codemon/0.1.8",
+        },
+        "cookies": {"sisinfoses1": "", "SisInfo": ""},
+        "payload": {
+            "f_srv": "2024",
+            "FrmCod": "",
+            "accion": "entrar",
+            "loginUsuario[tipodoc]": "3",
+            "loginUsuario[passwd]": "",
+            "loginUsuario[codigo]": "",
+            "loginUsuario[nrodoc]": "",
+        },
+    }
 
-    __sisinfo_request_url: str = "https://sisinfo.unrc.edu.ar/"
-    __sisinfo_request_params: list[str] = [
-        "accion=entrar",
-        "gencook=",
-        "FrmCod=",
-        "f_srv=2024",
-        "loginUsuario[codigo]=",
-        "loginUsuario[tipodoc]=3",
-        "loginUsuario[nrodoc]=",
-        "loginUsuario[passwd]=",
-        "ingresar=",
-    ]
-    __sisinfo_request_headers: list[str] = [
-        "Referer https://sisinfo.unrc.edu.ar/sisinfo/",
-    ]
-    __sisinfo_request_cookies: list[str] = ["sisinfoses1=", "SisInfo="]
-
-    __is_client_logged: bool
-    """Represents a binary state for the user logging state."""
-
-    __is_client_loaded: bool
-    """Represents a binary state for the user logging site state."""
+    __is_logged: bool
+    __is_expired: bool
 
     def __init__(self) -> None:
-        """Initialize a new SYSINFO Web Scraping Service.
+        """Initialize a new SYSINFO Web Scraping Service."""
 
-        Raises:
-            RuntimeError: When an environ variable were missing.
-        """
-        self.__logger = logging.getLogger("discord")
+        self.__logger = loggers.logger("sisinfo")
+        self.__logger.setLevel(logging.DEBUG)
 
-        self.__is_client_logged = False
-        self.__is_client_loaded = False
+        self.__is_expired = True
+        self.__is_logged = False
 
-    @property
-    def response(self) -> requests.Response:
-        return self.__response
+    def __get_matched_content(self, expression: re.Pattern, content: str) -> list[str]:
+        return re.findall(expression, content)
 
-    def __format_params(self):
-        for param in self.__sisinfo_request_params:
-            subparams = param.split("=", 2)
-            yield subparams[0], subparams[1]
-
-    def __format_headers(self):
-        for header in self.__sisinfo_request_headers:
-            subheaders = header.split(" ", 2)
-            yield subheaders[0], subheaders[1]
-
-    def __format_cookies(self):
-        for cookie in self.__sisinfo_request_cookies:
-            subcookies = cookie.split("=", 2)
-            yield subcookies[0], subcookies[1]
-
-    def __build_request_body(self):
-
-        params = {key: value for key, value in self.__format_params()}
-        headers = {key: value for key, value in self.__format_headers()}
-        cookies = {key: value for key, value in self.__format_cookies()}
-
-        params["FrmCod"] = self.__extract_session_code()
-        params["loginUsuario[codigo]"] = self.__extract_session_code()
-        params["loginUsuario[nrodoc]"] = self.__sisinfo_user_dni
-        params["loginUsuario[passwd]"] = self.__sisinfo_user_passwd
-
-        # cookies["sisinfoses1"]=
-        # cookies["SisInfo"]=
-
-        return params, headers, cookies
-
-    @property
-    def session_token(self) -> str:
-        return self.__response.headers["sisinfoses1"]
-
-    def __extract_session_code(self) -> str:
-        """This method extracts the FormCode that represents a session token.
-        This token is used each time the user tries to login.
-
-        Raises:
-            ValueError: When the session code input is missing.
-
-        Returns:
-            str: The session token.
-        """
-        match_form_session_code_input = re.compile(
+    def __grab_session_token(self, content: str) -> str:
+        HIDDEN_SESSION_TOKEN = re.compile(
             r'input\s+type=["\']hidden["\']\s+name=["\']FrmCod["\']\s+value=["\'][^"\']*[a-zA-Z0-9][^"\']*["\']'
         )
 
-        self.__logger.debug("[extract_session_code] Extracting session token.")
+        candidates: list[str] = []
+        candidates_attrs: list[list[str]] = []
 
-        session_codes_matched = self.parse_content(match_form_session_code_input)
+        # Matches with an html hidden input with the attribute name set as "FrmCod"
+        candidates = self.__get_matched_content(HIDDEN_SESSION_TOKEN, content)
 
-        if len(session_codes_matched) < 1:
-            raise ValueError(
-                "the hidden formulary input for the session code is missing."
-            )
+        if len(candidates) < 1:
+            raise ValueError("no hidden input with the session token were found")
 
-        self.__logger.debug("[session_code] Extracting session code.")
+        # Make a list of tuples which contains the input attributes, with all the candidates.
+        candidates_attrs = [candidate.split(" ", 3) for candidate in candidates]
 
-        session_code = session_codes_matched[0].split(" ", 2)
+        # Store the session token if exist a candidate with the 'value' attribute.
+        tokens: list[str] = []
 
-        session_code = session_code[2].split("=", 2)[1]
+        for candidates in candidates_attrs:
+            for attr in candidates:
+                # Ignore this, is not an attribute :)
+                if attr == "input":
+                    continue
 
-        self.__logger.info(
-            "[extract_session_code] Sucssesfully extracted the session code: %s",
-            session_code,
+                [key, value] = attr.split("=", 2)
+                if key == "value":
+                    # Replace the attribute quotation marks with an empty space.
+                    normalized_value = value.replace('"', "")
+
+                    tokens.append(normalized_value)
+
+        if len(tokens) == 0:
+            raise ValueError("no session token were found")
+
+        return tokens.pop()
+
+    async def login(self) -> None:
+        """Attempts to login into 'https://sisinfo.unrc.edu.ar/' site."""
+
+        res: requests.Response
+
+        self.__logger.info("Attempting to request the SISINFO loging site.")
+
+        # Login if it's only required.
+        if self.__is_logged and not self.__is_expired:
+            self.__logger.info("The service is already loggued in.")
+            return
+
+        self.__logger.info("Requesting login page content")
+
+        URL = self.__meta.get("url")
+
+        # Request the login site.
+        res = self.__session.get(URL)
+
+        if not res.ok:
+            raise RuntimeError(f"The request performed at {URL} fails.")
+
+        self.__logger.info("Parsing session token")
+
+        # Parse session token from the requested site content.
+        session_token = self.__grab_session_token(res.text)
+        document = environs.get_environ("FLANGSBOT_SISINFO_USER_DNI")
+        password = environs.get_environ("FLANGSBOT_SISINFO_PASSWORD")
+
+        self.__meta["payload"].update(
+            {
+                "FrmCod": session_token,
+                "loginUsuario[codigo]": session_token,
+                "loginUsuario[nrodoc]": document,
+                "loginUsuario[passwd]": password,
+            }
         )
 
-        return session_code.replace('"', "")
-
-    def parse_content(self, pattern: re.Pattern[str] | str) -> list[str]:
-        """Given a compiled pattern or a string, this method will return
-         a list of the templates that matches with the given patter.
-
-        Args:
-            pattern (re.Pattern[str] | str): An expresion that will match with a specific content.
-
-        Returns:
-            list[str]: A list of all matches in the response content.
-        """
-
-        content = self.__response.content.decode("utf-8", "replace")
-
-        return re.findall(pattern, content)
-
-    def request_index(self) -> None:
-        """This method will request the initial resources required to logging to the site.
-
-        Raises:
-            ConnectionError: When the external server does not responds as expected.
-        """
-        url = self.__sisinfo_request_url
-
-        self.__logger.debug("[request_index] Requesting an initial resource at %s", url)
-
-        initial_response = requests.request("GET", url=url)
-
-        if not initial_response.ok:
-            raise ConnectionError(
-                f"The server {url} respond with a {initial_response.status_code} code wich is not an expected reponse code."
-            )
-
-        self.__response = initial_response
-        self.__is_client_loaded = True
-        self.__logger.info(
-            "[request_index] The initial resource request at %s was successfuly requested",
-            url,
+        self.__meta["headers"].update(
+            {"Content-Type": "application/x-www-form-urlencoded"}
         )
 
-    def request_loging(self) -> None:
-        """This method will request a logging action to the logging site.
+        self.__logger.info(f"attempting to loging with credentials [{session_token}]")
 
-        Raises:
-            ConnectionError: When the external server does not responds as expected.
-        """
-
-        url = self.__sisinfo_request_url
-
-        loging_params, loging_headers, loging_cookies = self.__build_request_body()
-
-        self.__logger.debug(
-            "[request_loging] Requesting a loging at %s as %s",
-            url,
-            self.__sisinfo_user_dni,
-        )
-
-        # HERE: Request logging.
-        loging_response = requests.request(
+        # Attempting to login into the site.
+        res = self.__session.request(
             "POST",
-            url=url,
-            params=loging_params,
-            headers=loging_headers,
-            cookies=loging_cookies,
+            url=URL,
+            headers=self.__meta.get("headers"),
+            data=self.__meta.get("payload"),
         )
 
-        if not loging_response.ok:
-            raise ConnectionError(
-                f"The server {url} respond with a {loging_response.status_code} code wich is not an expected response code."
+        if not res.ok:
+            raise RuntimeError(f"The login request performed at {URL} fails.")
+
+        elif not res.url == self.__SISINFO_URL:
+            raise RuntimeError(
+                f"Unexpected location. Expected: {self.__SISINFO_URL} but got {res.url}"
             )
 
-        if (
-            not loging_response.status_code == 302
-            or loging_response.headers.get("location") == None
+        elif (
+            self.__session.cookies.get("SisInfo") == None
+            or self.__session.cookies.get("sisinfoses1") == None
         ):
-            raise ConnectionError(
-                f"the server {url} denied the access to this resource."
+            raise RuntimeError(
+                f"Missing session cookies. Expected: 'SisInfo' and 'sisinfoses1'"
             )
 
-        self.__response = loging_response
-        self.__is_client_logged = True
-        self.__logger.info(
-            "[request_loging] The loging request at %s was successfully requested",
-            url,
-        )
+        self.__logger.info("LOGING WAS SUCCESSFULLY ACCOMPLISHED! YUPIII.")
+
+        self.__logger.debug("Storing credentials.")
+
+        # Saving session cookies and configurations.
+        self.__meta["cookies"].update(self.__session.cookies)
+
+        self.__is_expired = False
+        self.__is_logged = True
+
+    async def logout(self) -> None:
+        """Logout from 'https://sisinfo.unrc.edu.ar/' site."""
+        self.__logger.warning("Clossing current session")
+
+        self.__is_expired = True
+        self.__is_logged = False
+
+        self.__session.close()
+
+    def is_session_expired(self) -> bool:
+        return self.__is_expired
+
+    def is_session_closed(self) -> bool:
+        return not self.__is_logged
 
     async def setup(self) -> None:
-        """This method will setup a connection with the remote server.
-
-        Raises:
-            ConnectionError: When the external server does not respond as expected.
-        """
-
-        # TODO []: Check if a current session still exist.
-        # TODO []: Check if the session has expired.
-
-        # HERE: Request initial resources.
-        self.request_index()
-
-        # HERE: Request logging action.
-        self.request_loging()
-
-    def request_resource(self, url: str) -> None:
-
-        if not (self.__is_client_loaded and self.__is_client_logged):
-            raise SystemError("cannot request a resource until login into the site.")
-
-        request_params, request_headers, request_cookies = self.__build_request_body()
-
-        self.__logger.debug("[request_resource] Requesting a resource at %s", url)
-
-        response = requests.request(
-            "GET",
-            url=url,
-            params=request_params,
-            headers=request_headers,
-            cookies=request_cookies,
-        )
-
-        if not self.__response.ok:
-            raise ConnectionError(
-                "the remote server responded respond with does not respond as expect."
-            )
-
-        self.__response = response
-        self.__logger.info(
-            "[request_resource] The resource was successfully requested."
-        )
+        """Setup the requests session for this service."""
+        self.__session = requests.Session()

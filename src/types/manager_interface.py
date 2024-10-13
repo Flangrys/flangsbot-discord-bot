@@ -17,19 +17,14 @@ class ManagerInterface(abc.ABC):
     """
 
     __bot: commands.Bot
-    __logger: logging.Logger
-    __service: service_interface.ServiceInterface | None
     __tasks: asyncio.TaskGroup
     __cache: storage.CacheStorage
 
     def __init__(
         self,
         client: commands.Bot,
-        *,
-        service: service_interface.ServiceInterface | None
     ) -> None:
         self.__bot = client
-        self.__service = service
 
     @abc.abstractmethod
     async def setup(self) -> None:
