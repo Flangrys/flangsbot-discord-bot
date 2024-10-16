@@ -7,7 +7,7 @@ from discord.ext.commands.core import Command
 from discord.ext.commands.errors import CommandError
 
 
-class HelpCommand(HelpCommand):
+class CustomHelpCommand(HelpCommand):
 
     def __init__(self, **options: Any) -> None:
         super().__init__(**options)

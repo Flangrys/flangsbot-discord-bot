@@ -1,4 +1,5 @@
 import datetime
+import re
 import typing
 
 from discord.ext import commands
@@ -31,6 +32,8 @@ class SisinfoManager(manager_interface.ManagerInterface):
     async def setup(self) -> None:
         await self.__service.setup()
 
-    def request_notifications(self) -> list[Notification]: ...
+    async def request_notifications(self) -> list[Notification]:
+        return []
 
-    def request_calendar(self) -> list[Agenda]: ...
+    async def request_calendar(self) -> list[Agenda]:
+        return []

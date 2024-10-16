@@ -11,12 +11,12 @@ from src.types import version
 
 class Flangsbot(commands.Bot):
 
-    __version__: version.ClientVersion
-
-    __CLIENT_SECRET_KEY: str
-    __CLIENT_DEBUG_MODE: bool
-
+    __version: version.ClientVersion
     __logger: logging.Logger
+
+    __CLIENT_SECRET_KEY = environs.get_environ("FLANGSBOT_SECRET_KEY")
+    __CLIENT_DEBUG_MODE = environs.get_bool_environ("FLANGSBOT_DEBUG_MODE")
+    __CLIENT_DEBUG_GUILD = environs.get_integer_environ("FLANGSBOT_DEBUG_GUILD")
 
     __extensions_manager: extensions.ExtensionsManager
     __sisinfo_manager: sisinfo.SisinfoManager
@@ -24,17 +24,16 @@ class Flangsbot(commands.Bot):
     def __init__(self, *, version: version.ClientVersion) -> None:
         super().__init__(
             command_prefix="flan!",
-            help_command=help_command.HelpCommand(),
+            description="",
+            help_command=help_command.CustomHelpCommand(),
             intents=discord.Intents.all(),
         )
 
-        self.__version__ = version
+        self.__version = version
 
         self.__logger = loggers.logger("discord")
 
         # Setting up environ variables.
-        self.__CLIENT_SECRET_KEY = environs.get_environ("FLANGSBOT_SECRET_KEY")
-        self.__CLIENT_DEBUG_MODE = environs.get_bool_environ("FLANGSBOT_DEBUG_MODE")
 
         self.__extensions_manager = extensions.ExtensionsManager(self)
         self.__sisinfo_manager = sisinfo.SisinfoManager(self)
@@ -48,7 +47,7 @@ class Flangsbot(commands.Bot):
         extensions = self.__extensions_manager.get_enabled_extensions()
 
         if len(extensions) == 0:
-            self.__logger.warn("[extensions_manager] no cogs were loaded.")
+            self.__logger.warning("[extensions_manager] no cogs were loaded.")
 
     async def launcher(self) -> None:
         self.__logger.info("[launcher] Launching...")
@@ -58,6 +57,6 @@ class Flangsbot(commands.Bot):
             await bot.connect(reconnect=True)
 
     async def on_ready(self) -> None:
-        await self.tree.sync(guild=discord.Object(946064284209778801))
+        await self.tree.sync(guild=self.__CLIENT_DEBUG_GUILD)
 
         self.__logger.info("[application_commands] Synced commands")

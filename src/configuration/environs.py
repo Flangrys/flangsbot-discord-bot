@@ -5,14 +5,14 @@ def get_environ(key: str) -> str:
     """Get a environ by giving a key
 
     Args:
-        key (str): The environ key
+        key (str): The environ variable key.
 
     Raises:
-        ValueError: When the key argument were empty
-        RuntimeError: When no environ value were returned
+        ValueError: When the key argument were empty.
+        RuntimeError: When no environ value were returned.
 
     Returns:
-        str: The environ value
+        str: The environ variable as an string.
     """
 
     if key == "" or key == None:
@@ -27,25 +27,33 @@ def get_environ(key: str) -> str:
 
 
 def get_bool_environ(key: str) -> bool:
-    """Get a boolean environment variable by giving a key
+    """Get a boolean environment variable by giving a key.
 
     Args:
-        key (str): The environ key
+        key (str): The environ variable key.
 
     Raises:
-        ValueError: When the key argument were empty
-        RuntimeError: When no environ value were returned
+        ValueError: When the key argument were empty.
+        RuntimeError: When no environ value were returned.
 
     Returns:
-        bool: The environ value as a boolean
+        bool: The environ value as a boolean.
     """
 
-    if key == "" or key == None:
-        raise ValueError("cannot use an emprty string here")
-
-    env = os.environ.get(key)
-
-    if env == None:
-        raise RuntimeError(f"there is no an environ variable with the key {key}")
+    env = get_environ(key)
 
     return bool(env)
+
+
+def get_integer_environ(key: str) -> int:
+    """Get a integer environ variable given a key.
+
+    Args:
+        key (str): The environ variable key.
+
+    Returns:
+        int: The environ variable as an integer.
+    """
+    env = get_environ(key)
+
+    return int(env)
