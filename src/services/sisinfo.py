@@ -1,5 +1,6 @@
 import logging
 import re
+import typing
 
 import requests
 
@@ -13,13 +14,17 @@ class SYSINFOService(service_interface.ServiceInterface):
     This service provide a set of methods to access
     """
 
-    __SISINFO_URL = "https://sisinfo.unrc.edu.ar/sisinfo/"
+    __SISINFO_LOGIN_URL = "https://sisinfo.unrc.edu.ar/index.php"
+    __SISINFO_SITE_URL = "https://sisinfo.unrc.edu.ar/sisinfo/"
 
     __logger: logging.Logger
     __session: requests.Session
+    __current_response: requests.Response | None
+
+    __is_session_active: bool
+    __is_session_expired: bool
 
     __meta: SisinfoRequest = {
-        "url": "https://sisinfo.unrc.edu.ar/index.php",
         "headers": {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/png,image/svg+xml,*/*;q=0.8",
             "Accept-Language": "es-AR,es;q=0.8,en-US;q=0.5,en;q=0.3",
@@ -41,22 +46,71 @@ class SYSINFOService(service_interface.ServiceInterface):
         },
     }
 
-    __is_logged: bool
-    __is_expired: bool
-
     def __init__(self) -> None:
         """Initialize a new SYSINFO Web Scraping Service."""
 
         self.__logger = loggers.logger("sisinfo")
         self.__logger.setLevel(logging.DEBUG)
 
-        self.__is_expired = True
-        self.__is_logged = False
+        self.__is_session_expired = True
+        self.__is_session_active = False
+
+        self.__current_response = None
+        """Stores the last response made with the current session."""
+
+    def __check_hard_loging(self, response: requests.Response) -> bool:
+        """This method checks if the loging was successful by cheking site metadata.
+
+        Args:
+            response (requests.Response): A request response.
+
+        Returns:
+            bool: True if the login was successful, False otherwise.
+        """
+
+        if not response.ok:
+            raise RuntimeError(f"The login request performed at {self.__SISIN} fails.")
+
+        elif not response.url == self.__SISINFO_SITE_URL:
+            raise RuntimeError(
+                f"Unexpected location. Expected: {self.__SISINFO_SITE_URL} but got {response.url}"
+            )
+
+        elif (
+            self.__session.cookies.get("SisInfo") == None
+            or self.__session.cookies.get("sisinfoses1") == None
+        ):
+            raise RuntimeError(
+                f"Missing session cookies. Expected: 'SisInfo' and 'sisinfoses1'"
+            )
+
+        return False
 
     def __get_matched_content(self, expression: re.Pattern, content: str) -> list[str]:
+        """Retrieves a list of matched candidates for a given regular expression pattern.
+
+        Args:
+            expression (re.Pattern): A regular expression.
+            content (str): A string where match.
+
+        Returns:
+            list[str]: A list of the possibles candidates.
+        """
         return re.findall(expression, content)
 
     def __grab_session_token(self, content: str) -> str:
+        """_summary_
+
+        Args:
+            content (str): _description_
+
+        Raises:
+            ValueError: _description_
+            ValueError: _description_
+
+        Returns:
+            str: _description_
+        """
         HIDDEN_SESSION_TOKEN = re.compile(
             r'input\s+type=["\']hidden["\']\s+name=["\']FrmCod["\']\s+value=["\'][^"\']*[a-zA-Z0-9][^"\']*["\']'
         )
@@ -99,24 +153,24 @@ class SYSINFOService(service_interface.ServiceInterface):
 
         res: requests.Response
 
-        self.__logger.info("Attempting to request the SISINFO loging site.")
+        self.__logger.info("Attempting to request the SISINFO loging site. [INIT]")
 
         # Login if it's only required.
-        if self.__is_logged and not self.__is_expired:
+        if self.__is_session_active and not self.__is_session_expired:
             self.__logger.info("The service is already loggued in.")
             return
 
-        self.__logger.info("Requesting login page content")
-
-        URL = self.__meta.get("url")
+        self.__logger.info("Requesting login page content.")
 
         # Request the login site.
-        res = self.__session.get(URL)
+        res = self.__session.get(self.__SISINFO_LOGIN_URL)
 
         if not res.ok:
-            raise RuntimeError(f"The request performed at {URL} fails.")
+            raise RuntimeError(
+                f"The request performed at {self.__SISINFO_LOGIN_URL} fails."
+            )
 
-        self.__logger.info("Parsing session token")
+        self.__logger.info("Parsing session token.")
 
         # Parse session token from the requested site content.
         session_token = self.__grab_session_token(res.text)
@@ -136,56 +190,69 @@ class SYSINFOService(service_interface.ServiceInterface):
             {"Content-Type": "application/x-www-form-urlencoded"}
         )
 
-        self.__logger.info(f"attempting to loging with credentials [{session_token}]")
+        self.__logger.info(f"Attempting to loging with credentials [{session_token}]")
 
         # Attempting to login into the site.
         res = self.__session.request(
             "POST",
-            url=URL,
+            url=self.__SISINFO_LOGIN_URL,
             headers=self.__meta.get("headers"),
             data=self.__meta.get("payload"),
         )
 
-        if not res.ok:
-            raise RuntimeError(f"The login request performed at {URL} fails.")
+        if not self.__check_hard_loging(res):
+            raise RuntimeError("Unable to log in to the SISINFO site.")
 
-        elif not res.url == self.__SISINFO_URL:
-            raise RuntimeError(
-                f"Unexpected location. Expected: {self.__SISINFO_URL} but got {res.url}"
-            )
-
-        elif (
-            self.__session.cookies.get("SisInfo") == None
-            or self.__session.cookies.get("sisinfoses1") == None
-        ):
-            raise RuntimeError(
-                f"Missing session cookies. Expected: 'SisInfo' and 'sisinfoses1'"
-            )
-
-        self.__logger.info("LOGING WAS SUCCESSFULLY ACCOMPLISHED! YUPIII.")
+        self.__logger.info("Loging was successful accomplished [DONE]")
 
         self.__logger.debug("Storing credentials.")
 
         # Saving session cookies and configurations.
         self.__meta["cookies"].update(self.__session.cookies)
 
-        self.__is_expired = False
-        self.__is_logged = True
+        self.__is_session_expired = False
+        self.__is_session_active = True
 
     async def logout(self) -> None:
         """Logout from 'https://sisinfo.unrc.edu.ar/' site."""
         self.__logger.warning("Clossing current session")
 
-        self.__is_expired = True
-        self.__is_logged = False
+        self.__is_session_expired = True
+        self.__is_session_active = False
 
         self.__session.close()
 
     def is_session_expired(self) -> bool:
-        return self.__is_expired
+        return self.__is_session_expired
 
     def is_session_closed(self) -> bool:
-        return not self.__is_logged
+        return not self.__is_session_active
+
+    def check_expiration(self) -> bool:
+        return False
+
+    async def req(self, url: str, **kwargs) -> typing.Self:
+        if not self.__is_session_active or self.__is_session_expired:
+            raise ValueError("Cannot invoke this method before loging.")
+
+        self.__logger.info(f"Requesting at {url}")
+
+        method = kwargs.get("method", "GET")
+        self.__current_response = self.__session.request(
+            method=method, url=url, **kwargs
+        )
+
+        return self
+
+    async def find(self, expression: re.Pattern) -> list[str]:
+        if self.__current_response == None:
+            raise ValueError("Cannot invoke this method before invoke 'req' method")
+
+        content = self.__current_response.text
+        return re.findall(expression, content)
+
+    async def shutdown(self) -> None:
+        await self.logout()
 
     async def setup(self) -> None:
         """Setup the requests session for this service."""

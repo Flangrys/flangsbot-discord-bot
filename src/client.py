@@ -57,6 +57,6 @@ class Flangsbot(commands.Bot):
             await bot.connect(reconnect=True)
 
     async def on_ready(self) -> None:
-        await self.tree.sync(guild=self.__CLIENT_DEBUG_GUILD)
+        await self.tree.sync(guild=discord.Object(self.__CLIENT_DEBUG_GUILD))
 
         self.__logger.info("[application_commands] Synced commands")
