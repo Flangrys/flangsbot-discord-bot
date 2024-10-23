@@ -1,7 +1,4 @@
-from src.types import service_interface
-
-
-class FileDownloaderService(service_interface.ServiceInterface):
+class FileDownloaderService:
     """ """
 
     def __init__(self, **kwargs) -> None: ...

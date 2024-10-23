@@ -6,7 +6,7 @@ from src.services import sisinfo
 class TestSYSYINFOService(unittest.IsolatedAsyncioTestCase):
 
     async def test_service_loging_expecting_no_errors(self):
-        sisinfo_service = sisinfo.SYSINFOService()
+        sisinfo_service = sisinfo.SisinfoService()
 
         try:
             await sisinfo_service.setup()

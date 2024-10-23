@@ -5,8 +5,8 @@ from discord.ext import commands
 
 from src.commands import help_command
 from src.configuration import environs, loggers
-from src.managers import extensions, sisinfo
-from src.types import version
+from src.services import sisinfo, cogs
+from src.utils import version
 
 
 class Flangsbot(commands.Bot):
@@ -16,10 +16,9 @@ class Flangsbot(commands.Bot):
 
     __CLIENT_SECRET_KEY = environs.get_environ("FLANGSBOT_SECRET_KEY")
     __CLIENT_DEBUG_MODE = environs.get_bool_environ("FLANGSBOT_DEBUG_MODE")
-    __CLIENT_DEBUG_GUILD = environs.get_integer_environ("FLANGSBOT_DEBUG_GUILD")
 
-    __extensions_manager: extensions.ExtensionsManager
-    __sisinfo_manager: sisinfo.SisinfoManager
+    __extensions_manager: cogs.CogsService
+    __sisinfo_manager: sisinfo.SisinfoService
 
     def __init__(self, *, version: version.ClientVersion) -> None:
         super().__init__(
@@ -35,8 +34,7 @@ class Flangsbot(commands.Bot):
 
         # Setting up environ variables.
 
-        self.__extensions_manager = extensions.ExtensionsManager(self)
-        self.__sisinfo_manager = sisinfo.SisinfoManager(self)
+        self.__extensions_manager = extensions.CogsService(self)
 
     async def setup_hook(self) -> None:
         self.__logger.info("[setup] Setting up some things...")
@@ -57,6 +55,6 @@ class Flangsbot(commands.Bot):
             await bot.connect(reconnect=True)
 
     async def on_ready(self) -> None:
-        await self.tree.sync(guild=discord.Object(self.__CLIENT_DEBUG_GUILD))
+        await self.tree.sync(guild=discord.Object(946064284209778801))
 
         self.__logger.info("[application_commands] Synced commands")

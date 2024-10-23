@@ -1,9 +1,11 @@
+from typing import Any
+
 import discord
-from discord import app_commands
+from discord import app_commands, Interaction
 from discord.ext import commands
+from discord.ui import Item
 
 from src.client import Flangsbot
-
 
 class Settings(commands.Cog):
 
@@ -15,7 +17,7 @@ class Settings(commands.Cog):
     @app_commands.command(
         name="hw", description="Respond with a 'hello world!' message"
     )
-    @app_commands.guilds()
+    @app_commands.guilds(discord.Object(946064284209778801))
     async def hello_world(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_message("Hello World!")
 

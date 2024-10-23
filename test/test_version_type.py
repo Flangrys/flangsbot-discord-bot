@@ -1,6 +1,6 @@
 import unittest
 
-from src.types import version
+from src.utils import version
 
 
 class TestVersionType(unittest.TestCase):

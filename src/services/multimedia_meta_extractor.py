@@ -1,7 +1,4 @@
-from src.types import service_interface
-
-
-class MultimediaMetaExtractorService(service_interface.ServiceInterface):
+class MultimediaMetaExtractorService:
     """ """
 
     __information_extractor_key: str = "default"

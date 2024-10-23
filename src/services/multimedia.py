@@ -1,7 +1,4 @@
-from src.types import service_interface
-
-
-class MultimediaService(service_interface.ServiceInterface):
+class MultimediaService:
     """
     This service represents a multimedia information scrapper which is able to
     download and store videos, audio, transcriptions, miniatures, and more
@@ -13,7 +10,7 @@ class MultimediaService(service_interface.ServiceInterface):
     async def extract_information(
         self, *, download: bool = False, extractor: str = "default"
     ) -> list[dict[str, str]]:
-        """Extract the information given by the url and retorning a list of
+        """Extract the information given by the url and returning a list of
         each extracted video information.
 
         Args:

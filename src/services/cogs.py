@@ -1,37 +1,43 @@
 import pathlib
-from typing import override
+import typing
 
 from discord.ext import commands
 
-from src.types import extension, manager_interface
+class Extension(typing.TypedDict):
+    name: str
+    """The extension name."""
+
+    package: str
+    """The extension package path."""
+
+    enabled: bool
+    """True if the extension is enabled, False otherwise."""
 
 
-class ExtensionsManager(manager_interface.ManagerInterface):
-
-    EXTENSIONS_HASH: dict[str, int]
-    EXTENSIONS_LIST: list[extension.Extension]
-    EXTENSIONS_PATH: list[pathlib.Path]
+class CogsService:
+    COGS_MAP: dict[str, int]
+    COGS: list[Extension]
+    COGS_PATHS: list[pathlib.Path]
 
     def __init__(self, bot: commands.Bot) -> None:
-        super().__init__(bot)
+        self.__bot = bot
 
-        self.EXTENSIONS_HASH = {}
-        self.EXTENSIONS_LIST = []
-        self.EXTENSIONS_PATH = [
+        self.COGS_MAP = {}
+        self.COGS = []
+        self.COGS_PATHS = [
             path for path in self.get_extensions_path().glob("*.py")
         ]
 
-        for index in range(len(self.EXTENSIONS_PATH)):
-            self.EXTENSIONS_HASH.update({self.EXTENSIONS_PATH[index].stem: index})
-            self.EXTENSIONS_LIST.append(
+        for index in range(len(self.COGS_PATHS)):
+            self.COGS_MAP.update({self.COGS_PATHS[index].stem: index})
+            self.COGS.append(
                 {
-                    "name": self.EXTENSIONS_PATH[index].stem,
-                    "package": self.EXTENSIONS_PATH[index].name,
+                    "name": self.COGS_PATHS[index].stem,
+                    "package": self.COGS_PATHS[index].name,
                     "enabled": False,
                 }
             )
 
-    @override
     async def setup(self) -> None:
         await self.load_all_extensions()
 
@@ -49,17 +55,17 @@ class ExtensionsManager(manager_interface.ManagerInterface):
             bool: True if it is loaded.
         """
 
-        index = self.EXTENSIONS_HASH[extension]
-        return self.EXTENSIONS_LIST[index]["enabled"]
+        index = self.COGS_MAP[extension]
+        return self.COGS[index]["enabled"]
 
     def is_all_extensions_loaded(self) -> bool:
-        """This method returns true when all of the extensions are loaded.
+        """This method returns true when all the extensions are loaded.
 
         Returns:
             bool: True when all extensions are loaded, False otherwise.
         """
 
-        return all([ext["enabled"] for ext in self.EXTENSIONS_LIST] or [False])
+        return all([ext["enabled"] for ext in self.COGS] or [False])
 
     async def load_extension(self, extension: str) -> None:
         """This method loads an extension given by their path.
@@ -71,7 +77,7 @@ class ExtensionsManager(manager_interface.ManagerInterface):
             ValueError: When the extension is already loaded.
         """
 
-        if extension not in self.EXTENSIONS_HASH:
+        if extension not in self.COGS_MAP:
             raise ValueError(
                 f"the extension {extension} does not exist in the extensions path"
             )
@@ -79,12 +85,12 @@ class ExtensionsManager(manager_interface.ManagerInterface):
         if self.is_extension_loaded(extension):
             raise ValueError(f"the extension {extension} is already loaded")
 
-        __extension = self.EXTENSIONS_HASH[extension]
-        self.EXTENSIONS_LIST[__extension]["enabled"] = True
+        __extension = self.COGS_MAP[extension]
+        self.COGS[__extension]["enabled"] = True
 
         full_extension_name = "src.extensions." + extension
 
-        await self.client.load_extension(full_extension_name)
+        await self.__bot.load_extension(full_extension_name)
 
     async def load_all_extensions(self) -> None:
         """This method loads all the existing extensions in the extensions path.
@@ -96,7 +102,7 @@ class ExtensionsManager(manager_interface.ManagerInterface):
         if self.is_all_extensions_loaded():
             raise ValueError("cannot load all the extensions that it is already loaded")
 
-        for extension in self.EXTENSIONS_HASH:
+        for extension in self.COGS_MAP:
             await self.load_extension(extension)
 
     async def unload_extension(self, extension: str) -> None:
@@ -109,7 +115,7 @@ class ExtensionsManager(manager_interface.ManagerInterface):
             ValueError: When the extension is already unloaded.
         """
 
-        if extension not in self.EXTENSIONS_HASH:
+        if extension not in self.COGS_MAP:
             raise ValueError(
                 f"the extension {extension} does not exist in the extensions path"
             )
@@ -117,12 +123,12 @@ class ExtensionsManager(manager_interface.ManagerInterface):
         if not self.is_extension_loaded(extension):
             raise ValueError(f"the extension {extension} is already unloaded")
 
-        __extension = self.EXTENSIONS_HASH[extension]
-        self.EXTENSIONS_LIST[__extension]["enabled"] = False
+        __extension = self.COGS_MAP[extension]
+        self.COGS[__extension]["enabled"] = False
 
         full_extension_name = "src.extensions." + extension
 
-        await self.client.unload_extension(full_extension_name)
+        await self.__bot.unload_extension(full_extension_name)
 
     async def unload_all_extension(self) -> None:
         """This method unloads all the existing extensions in the extension path.
@@ -135,13 +141,13 @@ class ExtensionsManager(manager_interface.ManagerInterface):
                 "cannot unload all the extensions that it is already unloaded"
             )
 
-        for extension in self.EXTENSIONS_HASH:
+        for extension in self.COGS_MAP:
             await self.unload_extension(extension)
 
     def get_enabled_extensions(self) -> list[str]:
         enabled_extensions: list[str] = []
 
-        for ext in self.EXTENSIONS_LIST:
+        for ext in self.COGS:
             if ext["enabled"]:
                 enabled_extensions.append(ext["name"])
 

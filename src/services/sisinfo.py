@@ -5,11 +5,15 @@ import typing
 import requests
 
 from src.configuration import environs, loggers
-from src.types import service_interface
-from src.types.sisinfo_request import SisinfoRequest
 
 
-class SYSINFOService(service_interface.ServiceInterface):
+class Metadata(typing.TypedDict):
+    payload: dict[str, str]
+    headers: dict[str, str]
+    cookies: dict[str, str]
+
+
+class SisinfoService:
     """
     This service provide a set of methods to access
     """
@@ -24,7 +28,7 @@ class SYSINFOService(service_interface.ServiceInterface):
     __is_session_active: bool
     __is_session_expired: bool
 
-    __meta: SisinfoRequest = {
+    __meta: Metadata = {
         "headers": {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/png,image/svg+xml,*/*;q=0.8",
             "Accept-Language": "es-AR,es;q=0.8,en-US;q=0.5,en;q=0.3",
@@ -69,7 +73,7 @@ class SYSINFOService(service_interface.ServiceInterface):
         """
 
         if not response.ok:
-            raise RuntimeError(f"The login request performed at {self.__SISIN} fails.")
+            raise RuntimeError(f"The login request performed at {self.__SISINFO_SITE_URL} fails.")
 
         elif not response.url == self.__SISINFO_SITE_URL:
             raise RuntimeError(
@@ -77,8 +81,8 @@ class SYSINFOService(service_interface.ServiceInterface):
             )
 
         elif (
-            self.__session.cookies.get("SisInfo") == None
-            or self.__session.cookies.get("sisinfoses1") == None
+                self.__session.cookies.get("SisInfo") is None
+                or self.__session.cookies.get("sisinfoses1") is None
         ):
             raise RuntimeError(
                 f"Missing session cookies. Expected: 'SisInfo' and 'sisinfoses1'"
@@ -192,7 +196,7 @@ class SYSINFOService(service_interface.ServiceInterface):
 
         self.__logger.info(f"Attempting to loging with credentials [{session_token}]")
 
-        # Attempting to login into the site.
+        # Attempting to log in to the site.
         res = self.__session.request(
             "POST",
             url=self.__SISINFO_LOGIN_URL,
@@ -255,5 +259,5 @@ class SYSINFOService(service_interface.ServiceInterface):
         await self.logout()
 
     async def setup(self) -> None:
-        """Setup the requests session for this service."""
+        """Set up the requests session for this service."""
         self.__session = requests.Session()

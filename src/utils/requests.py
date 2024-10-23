@@ -49,7 +49,7 @@ def update_request(
 
 COMMON_TYPOS = [
     (r"^httpss://", r"http://"),
-    (r"^httpss://", r"http://"),
+    (r"^htpsc://", r"http://"),
 ]
 """ Represents a list of tuples with a typo regex template and a fix regex template"""
 
@@ -57,7 +57,7 @@ COMMON_TYPOS = [
 def sanitize_url_typos(url: str) -> str:
     """
     This function takes an url and will fix a common typing errors in the schema.
-    i.e. Given the schema: 'httpp://youtube.com' it will replaced with 'http://youtube.com'.
+    i.e. Given the schema: 'httpp://youtube.com' it will replace with 'http://youtube.com'.
 
     Args:
         url (str): A url.
