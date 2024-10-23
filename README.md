@@ -61,7 +61,7 @@ En esta sección encontraras los puntos claves que necesitas conocer para llevar
 
 El despliegue de este proyecto en forma local no es recomendado ya que se necesita contar con el acceso a ciertas credenciales para servicios de terceros y otras variables de entorno que son privadas. Por lo que no aconsejamos desplegar localmente este proyecto.
 
-> [!INFO]
+> [!NOTE]
 > En una proxima version, se utilizara un sistema de **feature flags** el cual permitira habilitar o deshabilitar ciertas caracteristicas de este software.
 
 Para desplegar el proyecto localmente deberas establecer la variable de entorno `FLANGSBOT_DISABLE_SISINFO` en `1`. De esta forma estaras deshabilitando ciertas funcionalidades que impiden el desarrollo localmente, ya que estas precisan de secretos y otras variables de entorno que son privadas.
