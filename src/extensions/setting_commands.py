@@ -3,7 +3,6 @@ from typing import Any
 import discord
 from discord import app_commands, Interaction
 from discord.ext import commands
-from discord.ui import Item
 
 from src.client import Flangsbot
 

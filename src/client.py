@@ -17,7 +17,7 @@ class Flangsbot(commands.Bot):
     __CLIENT_SECRET_KEY = environs.get_environ("FLANGSBOT_SECRET_KEY")
     __CLIENT_DEBUG_MODE = environs.get_bool_environ("FLANGSBOT_DEBUG_MODE")
 
-    __extensions_manager: cogs.CogsService
+    __cogs_manager: cogs.CogsService
     __sisinfo_manager: sisinfo.SisinfoService
 
     def __init__(self, *, version: version.ClientVersion) -> None:
@@ -31,18 +31,20 @@ class Flangsbot(commands.Bot):
         self.__version = version
 
         self.__logger = loggers.logger("discord")
+        self.__logger.setLevel(logging.INFO)
 
         # Setting up environ variables.
 
-        self.__extensions_manager = extensions.CogsService(self)
+        self.__cogs_manager = cogs.CogsService(self)
+        self.__sisinfo_manager = sisinfo.SisinfoService()
 
     async def setup_hook(self) -> None:
         self.__logger.info("[setup] Setting up some things...")
 
-        await self.__extensions_manager.load_all_extensions()
+        await self.__cogs_manager.load_all_extensions()
         await self.__sisinfo_manager.setup()
 
-        extensions = self.__extensions_manager.get_enabled_extensions()
+        extensions = self.__cogs_manager.get_enabled_extensions()
 
         if len(extensions) == 0:
             self.__logger.warning("[extensions_manager] no cogs were loaded.")

@@ -122,7 +122,7 @@ class SisinfoService:
         candidates: list[str] = []
         candidates_attrs: list[list[str]] = []
 
-        # Matches with an html hidden input with the attribute name set as "FrmCod"
+        # Matches with a html hidden input with the attribute name set as "FrmCod"
         candidates = self.__get_matched_content(HIDDEN_SESSION_TOKEN, content)
 
         if len(candidates) < 1:

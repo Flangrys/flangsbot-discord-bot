@@ -2,7 +2,7 @@ import os
 
 
 def get_environ(key: str) -> str:
-    """Get a environ by giving a key
+    """Get an environ by giving a key
 
     Args:
         key (str): The environ variable key.
