@@ -73,7 +73,9 @@ class SisinfoService:
         """
 
         if not response.ok:
-            raise RuntimeError(f"The login request performed at {self.__SISINFO_SITE_URL} fails.")
+            raise RuntimeError(
+                f"The login request performed at {self.__SISINFO_SITE_URL} fails."
+            )
 
         elif not response.url == self.__SISINFO_SITE_URL:
             raise RuntimeError(
@@ -81,8 +83,8 @@ class SisinfoService:
             )
 
         elif (
-                self.__session.cookies.get("SisInfo") is None
-                or self.__session.cookies.get("sisinfoses1") is None
+            self.__session.cookies.get("SisInfo") is None
+            or self.__session.cookies.get("sisinfoses1") is None
         ):
             raise RuntimeError(
                 f"Missing session cookies. Expected: 'SisInfo' and 'sisinfoses1'"
@@ -115,6 +117,8 @@ class SisinfoService:
         Returns:
             str: _description_
         """
+
+        # ChatCGT made this shit below :)
         HIDDEN_SESSION_TOKEN = re.compile(
             r'input\s+type=["\']hidden["\']\s+name=["\']FrmCod["\']\s+value=["\'][^"\']*[a-zA-Z0-9][^"\']*["\']'
         )
@@ -235,7 +239,7 @@ class SisinfoService:
     def check_expiration(self) -> bool:
         return False
 
-    async def req(self, url: str, **kwargs) -> typing.Self:
+    async def req(self, url: str, **kwargs) -> "SisinfoService":
         if not self.__is_session_active or self.__is_session_expired:
             raise ValueError("Cannot invoke this method before loging.")
 

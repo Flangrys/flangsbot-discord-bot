@@ -1,5 +1,7 @@
 import os
 
+import discord
+
 
 def get_environ(key: str) -> str:
     """Get an environ by giving a key
@@ -57,3 +59,18 @@ def get_integer_environ(key: str) -> int:
     env = get_environ(key)
 
     return int(env)
+
+
+def get_guild_environ(key: str) -> discord.Object:
+    """Get a discord Guild environment variable given their key.
+
+    Args:
+        key (str): The environ variable key.
+
+    Returns:
+        discord.Object: A discord Object or guild id.
+    """
+
+    env = get_integer_environ(key)
+
+    return discord.Object(env)

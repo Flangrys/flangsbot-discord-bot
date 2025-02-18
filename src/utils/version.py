@@ -1,14 +1,5 @@
-import typing
+from typing import Literal, Tuple
 
-type ReleaseType = typing.Literal["release", "candidate", "beta", "indev"]
+type ReleaseType = Literal["release", "candidate", "beta", "indev"]
 
-
-class ClientVersion(typing.NamedTuple):
-    """
-    Represents a named versioning tuple which describes the version of this project.
-    """
-
-    major: int
-    minor: int
-    micro: int
-    level: ReleaseType
+type ClientVersion = Tuple[int, int, int, ReleaseType]

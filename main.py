@@ -6,7 +6,7 @@ __version__ = (0, 1, 0, "indev")
 
 if __name__ == "__main__":
 
-    __bot = client.Flangsbot(version=__version__)  # type: ignore
+    __bot = client.Flangsbot(version=__version__)
 
     try:
         asyncio.run(__bot.launcher())

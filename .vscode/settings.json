@@ -1,9 +1,9 @@
 {
   "[python]": {
-    "editor.formatOnType": true
+    "editor.formatOnSave": true
   },
 
-  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.typeCheckingMode": "strict",
   "python.analysis.autoImportCompletions": true,
 
   "python.testing.unittestArgs": ["-v", "-s", "./test", "-p", "test_*.py"],
