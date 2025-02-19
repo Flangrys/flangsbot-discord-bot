@@ -2,19 +2,83 @@ import logging
 
 
 class CustomFormatter(logging.Formatter):
+    WHITE = "\x1b[m"
+    BLACK = "\x1b[30m"
+    RED = "\x1b[31m"
+    GREEN = "\x1b[32m"
+    YELLOW = "\x1b[33m"
+    BLUE = "\x1b[34m"
+    PURPLE = "\x1b[35m"
+    CYAN = "\x1b[36m"
+    GRAY = "\x1b[37m"
+    RESET = "\x1b[0m"
 
-    __formats: dict[int, str] = {
-        logging.NOTSET: "[%(asctime)s] \x1b[49m [%(levelname)s] \x1b[0m [%(name)s]: %(message)s",
-        logging.DEBUG: "[%(asctime)s] \x1b[1,49m [%(levelname)s] \x1b[0m [%(name)s]: %(message)s",
-        logging.INFO: "[%(asctime)s] \x1b[49m  [%(levelname)s] \x1b[0m [%(name)s]: %(message)s",
-        logging.WARN: "[%(asctime)s] \x1b[49m [%(levelname)s] \x1b[0m [%(name)s]: %(message)s",
-        logging.ERROR: "[%(asctime)s] \x1b[49m [%(levelname)s] \x1b[0m [%(name)s]: %(message)s",
-        logging.CRITICAL: "[%(asctime)s] \x1b[49m [%(levelname)s] \x1b[0m [%(name)s]: %(message)s",
+    time_format = "[%(asctime)s] "
+    level_format = "[%(levelname)s] "
+    name_format = " [%(name)s]"
+    message_format = ": %(message)s"
+
+    __formats = {
+        logging.NOTSET: WHITE
+                        + time_format
+                        + "\x1b[30;47m "
+                        + level_format
+                        + RESET
+                        + WHITE
+                        + name_format
+                        + message_format
+                        + RESET,
+        logging.DEBUG: WHITE
+                       + time_format
+                       + "\x1b[30;42m "
+                       + level_format
+                       + RESET
+                       + WHITE
+                       + name_format
+                       + message_format
+                       + RESET,
+        logging.INFO: WHITE
+                      + time_format
+                      + "\x1b[1;44m "
+                      + level_format
+                      + RESET
+                      + WHITE
+                      + name_format
+                      + message_format
+                      + RESET,
+        logging.WARNING: WHITE
+                         + time_format
+                         + "\x1b[30;43m "
+                         + level_format
+                         + RESET
+                         + WHITE
+                         + name_format
+                         + message_format
+                         + RESET,
+        logging.ERROR: WHITE
+                       + time_format
+                       + "\x1b[1;41m "
+                       + level_format
+                       + RESET
+                       + WHITE
+                       + name_format
+                       + message_format
+                       + RESET,
+        logging.CRITICAL: WHITE
+                          + time_format
+                          + "\x1b[1;45m "
+                          + level_format
+                          + RESET
+                          + WHITE
+                          + name_format
+                          + message_format
+                          + RESET,
     }
 
-    def format(self, record: logging.LogRecord) -> str:
-        fmt = self.__formats[record.levelno]
-        return logging.Formatter(fmt=fmt).format(record=record)
+    def format(self, record: logging.LogRecord):
+        fmt = self.__formats.get(record.levelno)
+        formatter = logging.Formatter(fmt)
+        return formatter.format(record)
 
 
 def logger(name: str) -> logging.Logger:
@@ -31,6 +95,6 @@ def logger(name: str) -> logging.Logger:
     handlr = logging.StreamHandler()
     handlr.setFormatter(fmt=formtr)
 
-    logger = logging.getLogger(name)
-    logger.addHandler(handlr)
-    return logger
+    log = logging.getLogger(name)
+    log.addHandler(handlr)
+    return log

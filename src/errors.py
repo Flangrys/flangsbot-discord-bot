@@ -27,7 +27,7 @@ class NotAMemberException(CheckFailure):
 
 class TransferException(AppCommandError):
     """
-    An exception raised when a user cannot be transferd or moved.
+    An exception raised when a user cannot be transfer or moved.
     """
 
     pass

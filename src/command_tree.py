@@ -2,18 +2,14 @@ import logging
 
 from discord import Client, Embed, Interaction
 from discord.app_commands import CommandTree
-from discord.app_commands.errors import AppCommandError
+from discord.app_commands.errors import AppCommandError, CheckFailure
 
 from src.errors import (
-    NotAChannelException,
-    NotAGuildException,
-    NotAMemberException,
     TransferException,
 )
 
 
 class FlangsbotCommandTree(CommandTree):
-
     __logger: logging.Logger
 
     def __init__(self, client: Client):
@@ -24,52 +20,51 @@ class FlangsbotCommandTree(CommandTree):
 
     @staticmethod
     def __build_exception_embed(*, exception: Exception, description: str) -> Embed:
-        embed = Embed(title="Reported exception.", description=description)
-        embed.add_field(inline=True, name="Class", value=type(exception))
-        embed.add_field(inline=True, name="Exception ", value=exception)
-        embed.add_field(inline=True, name="Traceback", value=exception.__traceback__)
+        embed = Embed(title="Reported exception", description=description)
+        embed.add_field(name="Class", value=type(exception))
+        embed.add_field(name="Exception", value=exception)
 
         return embed
 
     async def on_error(self, interaction: Interaction, error: AppCommandError) -> None:
-        match error:
-            case NotAChannelException():
-                await interaction.response.send_message(
-                    embed=self.__build_exception_embed(
-                        exception=error,
-                        description="❎ A channel-related check failed:",
-                    )
+        if isinstance(error, CheckFailure):
+            return await interaction.followup.send(
+                embed=self.__build_exception_embed(
+                    exception=error,
+                    description="❎ A check precondition failed because:",
                 )
+            )
 
-            case NotAGuildException():
-                await interaction.response.send_message(
-                    embed=self.__build_exception_embed(
-                        exception=error,
-                        description="❎ A guild-related check failed:",
-                    )
+        elif isinstance(error, TransferException):
+            return await interaction.followup.send(
+                embed=self.__build_exception_embed(
+                    exception=error,
+                    description="❎ The transfer process failed because:",
                 )
+            )
 
-            case NotAMemberException():
-                await interaction.response.send_message(
-                    embed=self.__build_exception_embed(
-                        exception=error,
-                        description="❎ A member-related check failed:",
-                    )
+        elif isinstance(error, ValueError):
+            return await interaction.followup.send(
+                embed=self.__build_exception_embed(
+                    exception=error,
+                    description="❎ The argument does not satisfies the required value because:",
                 )
+            )
 
-            case TransferException():
-                await interaction.response.send_message(
-                    embed=self.__build_exception_embed(
-                        exception=error,
-                        description="❎ A voice channel transfer-related check failed:",
-                    )
+        elif isinstance(error, TypeError):
+            return await interaction.followup.send(
+                embed=self.__build_exception_embed(
+                    exception=error,
+                    description="❎ The argument does not satisfies the required type because:",
                 )
+            )
 
-            case err:
-                await interaction.response.send_message(
-                    embed=self.__build_exception_embed(
-                        exception=err,
-                        description="❎ An unhandled exception just raised :)",
-                    )
+        elif isinstance(error, AppCommandError):
+            self.__logger.warning("An unhandled exception was raised.", error)
+
+            return await interaction.followup.send(
+                embed=self.__build_exception_embed(
+                    exception=error,
+                    description="❎ An unhandled exception has occurred.",
                 )
-                self.__logger.warning("An unhandled exception was raised.", err)
+            )

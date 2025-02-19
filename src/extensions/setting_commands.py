@@ -1,20 +1,18 @@
-from typing import Any
-
 import discord
-from discord import app_commands, Interaction
+from discord import app_commands
 from discord.ext import commands
 
 from src.client import Flangsbot
 
-class Settings(commands.Cog):
 
-    bot: "Flangsbot"
+class Settings(commands.Cog):
 
     def __init__(self, bot: "Flangsbot") -> None:
         self.bot = bot
 
     @app_commands.command(
-        name="hw", description="Respond with a 'hello world!' message"
+        name="hw",
+        description="Respond with a 'hello world!' message",
     )
     @app_commands.guilds(discord.Object(946064284209778801))
     async def hello_world(self, interaction: discord.Interaction) -> None:
@@ -22,10 +20,4 @@ class Settings(commands.Cog):
 
 
 async def setup(bot: "Flangsbot"):
-    """Extension Entrypoint.
-
-    Args:
-        bot (Flangsbot): The bot.
-    """
-
     await bot.add_cog(Settings(bot))
